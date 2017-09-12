@@ -20,19 +20,20 @@ namespace ColorCode.Lexing
             this.languageRepository = languageRepository;
         }
 
-        public StringScope[] Lex(string sourceCode, ILanguage language)
+        public CodeColorizer.SourceAndScope[] Lex(string sourceCode, ILanguage language)
         {
             if (string.IsNullOrEmpty(sourceCode))
-                return new StringScope[0];
+                return new CodeColorizer.SourceAndScope[0];
 
             CompiledLanguage compiledLanguage = languageCompiler.Compile(language);
 
             Match regexMatch = compiledLanguage.Regex.Match(sourceCode);
-            List<StringScope> list = new List<StringScope>();
+            List<CodeColorizer.SourceAndScope> list = new List<CodeColorizer.SourceAndScope>();
 
             if (!regexMatch.Success)
             {
-                list.Add(new StringScope(sourceCode, new Scope("plainText", 0, 0)));
+                // no lexing, return plain text tag
+                list.Add(new CodeColorizer.SourceAndScope(sourceCode, new Scope("plainText", 0, 0)));
             }
             else
             {
@@ -43,16 +44,17 @@ namespace ColorCode.Lexing
                     string sourceCodeBeforeMatch = sourceCode.Substring(currentIndex, regexMatch.Index - currentIndex);
                     if (!string.IsNullOrEmpty(sourceCodeBeforeMatch))
                     {
-                        list.Add(new StringScope(sourceCodeBeforeMatch, new Scope("plainText", 0, 0)));
+                        list.Add(new CodeColorizer.SourceAndScope(sourceCodeBeforeMatch, new Scope("plainText", 0, 0)));
                     }
 
                     string matchedSourceCode = sourceCode.Substring(regexMatch.Index, regexMatch.Length);
                     if (!string.IsNullOrEmpty(matchedSourceCode))
                     {
+                        // put keyword, comment, etc tags on elements
                         List<Scope> capturedStylesForMatchedFragment =
                             GetCapturedStyles(regexMatch, regexMatch.Index, compiledLanguage);
                         List<Scope> capturedStyleTree = CreateCapturedStyleTree(capturedStylesForMatchedFragment);
-                        list.Add(new StringScope(matchedSourceCode, new Scope(capturedStyleTree[0].Name, 0, 0)));
+                        list.Add(new CodeColorizer.SourceAndScope(matchedSourceCode, new Scope(capturedStyleTree[0].Name, 0, 0)));
                     }
 
                     currentIndex = regexMatch.Index + regexMatch.Length;
@@ -62,24 +64,12 @@ namespace ColorCode.Lexing
                 string sourceCodeAfterAllMatches = sourceCode.Substring(currentIndex);
                 if (!string.IsNullOrEmpty(sourceCodeAfterAllMatches))
                 {
-                    list.Add(new StringScope(sourceCodeAfterAllMatches, new Scope("plainText", 0, 0)));
+                    // add plainText tag to remaining text
+                    list.Add(new CodeColorizer.SourceAndScope(sourceCodeAfterAllMatches, new Scope("plainText", 0, 0)));
                 }
             }
             return list.ToArray();
         }
-
-        public struct StringScope
-        {
-            public string sourceCode;
-            public Scope scope;
-
-            public StringScope(string sourceCode, Scope scope)
-            {
-                this.sourceCode = sourceCode;
-                this.scope = scope;
-            }
-        }
-
         private static List<Scope> CreateCapturedStyleTree(IList<Scope> capturedStyles)
         {
             capturedStyles.SortStable((x, y) => x.Index.CompareTo(y.Index));

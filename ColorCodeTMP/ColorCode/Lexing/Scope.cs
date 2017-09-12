@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using ColorCode.Common;
 
-namespace ColorCode.Parsing
+namespace ColorCode.Lexing
 {
     public class Scope
     {

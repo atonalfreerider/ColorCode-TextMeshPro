@@ -1,11 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.  All rights reserved.
 
+using System;
 using System.IO;
 using System.Text;
 using ColorCode.Common;
 using ColorCode.Compilation;
 using ColorCode.Formatting;
 using ColorCode.Parsing;
+using ColorCode.Styling.StyleSheets;
 
 namespace ColorCode
 {
@@ -14,21 +16,22 @@ namespace ColorCode
     /// </summary>
     public class CodeColorizer : ICodeColorizer
     {
-        private readonly ILanguageParser languageParser;
+        private readonly LanguageParser languageParser;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CodeColorizer"/> class.
         /// </summary>
         public CodeColorizer()
         {
-            languageParser = new LanguageParser(new LanguageCompiler(Languages.CompiledLanguages), Languages.LanguageRepository);
+            languageParser = new LanguageParser(new LanguageCompiler(Languages.CompiledLanguages),
+                Languages.LanguageRepository);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CodeColorizer"/> class.
         /// </summary>
         /// <param name="languageParser">The language parser that the <see cref="CodeColorizer"/> instance will use for its lifetime.</param>
-        public CodeColorizer(ILanguageParser languageParser)
+        public CodeColorizer(LanguageParser languageParser)
         {
             Guard.ArgNotNull(languageParser, "languageParser");
 
@@ -79,21 +82,44 @@ namespace ColorCode
         /// <param name="styleSheet">The style sheet to use to colorize the source code.</param>
         /// <param name="textWriter">The text writer to which the colorized source code will be written.</param>
         public void Colorize(string sourceCode,
-                             ILanguage language,
-                             IFormatter formatter,
-                             IStyleSheet styleSheet,
-                             TextWriter textWriter)
+            ILanguage language,
+            IFormatter formatter,
+            IStyleSheet styleSheet,
+            TextWriter textWriter)
         {
             Guard.ArgNotNull(language, "language");
             Guard.ArgNotNull(formatter, "formatter");
             Guard.ArgNotNull(styleSheet, "styleSheet");
             Guard.ArgNotNull(textWriter, "textWriter");
 
-            formatter.WriteHeader(styleSheet, language, textWriter);
+            //formatter.WriteHeader(styleSheet, language, textWriter);
 
-            languageParser.Parse(sourceCode, language, (parsedSourceCode, captures) => formatter.Write(parsedSourceCode, captures, styleSheet, textWriter));
+            LanguageParser.StringScope[] stringScopeArray = languageParser.Parse(sourceCode, language,
+                (parsedSourceCode, captures) => formatter.Write(parsedSourceCode, captures, styleSheet, textWriter));
 
-            formatter.WriteFooter(styleSheet, language, textWriter);
+            foreach (LanguageParser.StringScope stringScope in stringScopeArray)
+            {
+                Console.WriteLine(stringScope.scope.Name + stringScope.sourceCode);
+            }
+            
+            //formatter.WriteFooter(styleSheet, language, textWriter);
+        }
+
+        public static void Main(string[] args)
+        {
+            new CodeColorizer().Colorize(@"public void refreshColors(Iterable<String> list)
+{
+	topColors=new HashMap<String, Color>();
+	double x=.1;
+	int i=0;
+	for (String s: list)
+	{
+		topColors.put(s, i<handPalette.length ? handPalette[i] : palette(x));
+		i++;
+		x+=PHI;
+	}
+}",
+                Languages.Java, new DefaultStyleSheet());
         }
     }
 }

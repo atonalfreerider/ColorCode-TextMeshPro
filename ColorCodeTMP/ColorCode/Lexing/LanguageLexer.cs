@@ -33,7 +33,7 @@ namespace ColorCode.Lexing
             if (!regexMatch.Success)
             {
                 // no lexing, return plain text tag
-                list.Add(new CodeColorizer.SourceAndScope(sourceCode, new Scope("plainText", 0, 0)));
+                list.Add(new CodeColorizer.SourceAndScope(sourceCode, new Scope(ScopeName.PlainText, 0, 0)));
             }
             else
             {
@@ -44,7 +44,8 @@ namespace ColorCode.Lexing
                     string sourceCodeBeforeMatch = sourceCode.Substring(currentIndex, regexMatch.Index - currentIndex);
                     if (!string.IsNullOrEmpty(sourceCodeBeforeMatch))
                     {
-                        list.Add(new CodeColorizer.SourceAndScope(sourceCodeBeforeMatch, new Scope("plainText", 0, 0)));
+                        list.Add(new CodeColorizer.SourceAndScope(sourceCodeBeforeMatch,
+                            new Scope(ScopeName.PlainText, 0, 0)));
                     }
 
                     string matchedSourceCode = sourceCode.Substring(regexMatch.Index, regexMatch.Length);
@@ -54,7 +55,8 @@ namespace ColorCode.Lexing
                         List<Scope> capturedStylesForMatchedFragment =
                             GetCapturedStyles(regexMatch, regexMatch.Index, compiledLanguage);
                         List<Scope> capturedStyleTree = CreateCapturedStyleTree(capturedStylesForMatchedFragment);
-                        list.Add(new CodeColorizer.SourceAndScope(matchedSourceCode, new Scope(capturedStyleTree[0].Name, 0, 0)));
+                        list.Add(new CodeColorizer.SourceAndScope(matchedSourceCode,
+                            new Scope(capturedStyleTree[0].Name, 0, 0)));
                     }
 
                     currentIndex = regexMatch.Index + regexMatch.Length;
@@ -65,11 +67,13 @@ namespace ColorCode.Lexing
                 if (!string.IsNullOrEmpty(sourceCodeAfterAllMatches))
                 {
                     // add plainText tag to remaining text
-                    list.Add(new CodeColorizer.SourceAndScope(sourceCodeAfterAllMatches, new Scope("plainText", 0, 0)));
+                    list.Add(new CodeColorizer.SourceAndScope(sourceCodeAfterAllMatches,
+                        new Scope(ScopeName.PlainText, 0, 0)));
                 }
             }
             return list.ToArray();
         }
+
         private static List<Scope> CreateCapturedStyleTree(IList<Scope> capturedStyles)
         {
             capturedStyles.SortStable((x, y) => x.Index.CompareTo(y.Index));
@@ -125,7 +129,8 @@ namespace ColorCode.Lexing
                 Group regexGroup = regexMatch.Groups[i];
                 if (regexGroup.Length > 0 && i < compiledLanguage.Captures.Count)
                 {
-                    //note: i can be >= Captures.Count due to named groups; these do capture a group but always get added after all non-named groups (which is why we do not count them in numberOfCaptures)
+                    //note: i can be >= Captures.Count due to named groups; these do capture a group but always get 
+                    //added after all non-named groups (which is why we do not count them in numberOfCaptures)
                     string styleName = compiledLanguage.Captures[i];
                     if (!String.IsNullOrEmpty(styleName))
                     {
